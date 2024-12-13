@@ -1,0 +1,14 @@
+1. Creating and using a virtual env
+
+python -m venv DiscordBotEnv
+./DiscordBotEnv/Scripts/activate
+
+2. install the packages in src/requirements.txt
+
+pip install requirements.txt
+
+3. if you installed a package do 
+
+pip freeze > src/requirements.txt
+
+make sure you have installed the needed packages first.
