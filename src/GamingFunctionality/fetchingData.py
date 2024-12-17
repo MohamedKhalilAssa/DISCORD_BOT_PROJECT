@@ -2,6 +2,7 @@ import requests
 from dotenv import load_dotenv
 import json
 import os
+import datetime
 # SECOND PART: for the deals and maybe free games that would be scraped from some website
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -99,6 +100,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 
+# function that scrapes the data from the website
 #@return format: [{name,deal_value,old_value, image, link}...] 
 def scrape_deals(max_deals=10):
     driver = webdriver.Chrome() 
@@ -119,7 +121,7 @@ def scrape_deals(max_deals=10):
             if old_value is not None:
                 old_value = old_value.text
             else:
-                old_value = "..."
+                old_value = "Unknown"
             game_name = element.select_one(".game-info-wrapper .game-info-title-wrapper .title").text   
             #deal link
             deal_link = websitelink + element.select_one(".game-cta .shop-link")['href']
@@ -135,3 +137,50 @@ def scrape_deals(max_deals=10):
             continue
     
     return deals
+
+# function that scrapes the deals and updates the deals.json after 1 day has passed
+def create_or_update_deals_json():
+    try:
+        with open("src/GamingFunctionality/deals.json", "r+") as f:
+            data = json.load(f)
+
+            timestamp = data.get("timestamp", "")  
+            date_format = datetime.datetime.strptime(timestamp, "%Y-%m-%d").date()
+
+            difference = datetime.date.today() - date_format
+            if difference.days >= 1:
+                deals = scrape_deals()
+                data["data"] = deals
+                data["timestamp"] = datetime.date.today().strftime("%Y-%m-%d")
+                f.seek(0)
+                json.dump(data, f, indent=4)
+                f.truncate()
+                return deals
+            
+            return data["data"]
+              
+    except (json.JSONDecodeError, ValueError, KeyError) as e:
+        print("Error reading or parsing deals.json:", e)
+        data = {
+            "data": scrape_deals(),
+            "timestamp": datetime.date.today().strftime("%Y-%m-%d")
+        }
+        with open("src/GamingFunctionality/deals.json", "w") as f:
+            json.dump(data, f, indent=4)
+            print("deals.json created with new data")
+        return data["data"]
+
+# function that uses the deals.json to send the deals to the discord channel
+async def send_deals(discord, message,colors):
+    deals = create_or_update_deals_json()
+    for index, deal in enumerate(deals):
+        embed = discord.Embed(
+            title=deal["name"],
+            url=deal["link"],
+            color=colors[index % len(colors)]
+        )
+        embed.add_field(name="Old Price", value=f"{deal["old_value"]}", inline=False)
+        embed.add_field(name="New Price", value=f"{deal["deal_value"]}", inline=False)
+        embed.set_image(url=deal["image"])
+        await message.channel.send(embed=embed)
+    await message.channel.send("Done!")

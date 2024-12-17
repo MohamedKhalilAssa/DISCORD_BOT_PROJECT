@@ -2,10 +2,27 @@ import discord
 from dotenv import load_dotenv
 import json
 import os
-from GamingFunctionality.fetchingData import finalizing_recommendations, scrape_deals
+from GamingFunctionality.fetchingData import finalizing_recommendations, send_deals
 
 load_dotenv()
 
+#custom functions 
+# 
+# must be called inside the on_message function
+colors = [discord.Color.blue(), discord.Color.green(), discord.Color.red(), discord.Color.purple(),discord.Color.teal()]
+
+
+
+def logging(message):
+    try :
+        with open("src/GamingFunctionality/logs.txt", "a") as f:
+            log_entry = f'@{message.author} - `{message.content}\n'
+            f.write(log_entry)
+    except Exception as e:
+        print("Error during logging: ", e)
+
+
+# BOT SETUP
 intents = discord.Intents.default()
 intents.message_content = True
 
@@ -20,6 +37,16 @@ async def on_message(message):
     if message.author == client.user:
         return
 
+    #/help command
+    if message.content.startswith('/help'):
+        embed = discord.Embed(title="Help", 
+                              description="Available commands:", color=discord.Color.random())
+        embed.add_field(name="/help", value="Displays this help message.", inline=False)
+        embed.add_field(name="/buy <product> <budget>", value="Sends recommendations for a product.", inline=False)
+        embed.add_field(name="/deals", value="Sends deals for games.", inline=False)
+        embed.add_field(name="/dailyDeals", value="Sends deals daily for games.", inline=False)
+        await message.channel.send(embed=embed)
+     
     # /buy command
     if message.content.startswith('/buy'):
         message_content = message.content.split(' ')[1:]
@@ -30,15 +57,7 @@ async def on_message(message):
         if code == -1:
             await message.channel.send('Only Tech/Gaming related recommendations are allowed')
             return
-        try :
-          with open("src/GamingFunctionality/logs.txt", "a") as f:
-                log_entry = f'@{message.author} asked for {message_content[0]} with a budget of ${message_content[1]}\n'
-                f.write(log_entry)
-        except Exception as e:
-            print("Error during logging: ", e)
-        
-        colors = [discord.Color.blue(), discord.Color.green(), discord.Color.red(), discord.Color.purple(),discord.Color.teal()]
-
+        logging(message)
         for index, recomm in enumerate(recomms):
             embed = discord.Embed(
                 title=f"Recommendation #{index + 1}",
@@ -50,6 +69,12 @@ async def on_message(message):
             embed.add_field(name="Links", value="\n".join([f"- {link}" for link in recomm["links"]]), inline=False)
             await message.channel.send(embed=embed)
         await message.channel.send('Recommendations have been sent successfully!')
+
+    if message.content.startswith('/deals'):
+        await send_deals(discord,message,colors)
+
+
+
 
 
 if __name__ == "__main__":
