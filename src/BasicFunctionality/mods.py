@@ -59,6 +59,20 @@ async def purge(ctx, amount):
     await ctx.channel.urge(limit = amount + 1) #delelte the messages includes the command itself
     await ctx.send(f"Deleted {amount} messages", delete_after = 3)
 
+#Handling errors:
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.MissingPermissions):  # Fixing the error type
+        await ctx.send("You don't have permission to use this command.")
+    elif isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send("A required argument is missing. Please check the command usage.")
+    elif isinstance(error, commands.CommandNotFound):
+        await ctx.send("Unknown command. Use /help or !help for a list of commands.")
+    else:
+        # Log the error for debugging purposes
+        print(f"An error occurred: {error}")
+        await ctx.send("An unexpected error occurred. Please contact an admin.")
+
 #Anti spam :
 
 #Spam settings :
@@ -67,6 +81,5 @@ time_window  = 10 #10 secondes
 mute_duration = 600 # mute for 10 minutes
 
 def setup(bot):
-    bot.add_command(kick)
-    bot.add_command(ban)
     bot.add_command(unban)
+    

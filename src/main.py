@@ -28,7 +28,7 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
-bot = commands.Bot(command_prefix='!', intents=intents)
+bot = commands.Bot(command_prefix='/', intents=intents)
 
 @bot.event
 async def on_ready():
@@ -76,6 +76,19 @@ async def on_message(message):
         await send_deals(discord,message,colors)
 
     await bot.process_commands(message)
+
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.MissingPermissions):  # Fixing the error type
+        await ctx.send("You don't have permission to use this command.")
+    elif isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send("A required argument is missing. Please check the command usage.")
+    elif isinstance(error, commands.CommandNotFound):
+        await ctx.send("Unknown command. Use /help or !help for a list of commands.")
+    else:
+        # Log the error for debugging purposes
+        print(f"An error occurred: {error}")
+        await ctx.send("An unexpected error occurred. Please contact an admin.")
     
 setup(bot)
 
