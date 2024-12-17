@@ -2,3 +2,5 @@ DiscordBotEnv
 src/.env 
 src/GamingFunctionality/logs.txt
 src/GamingFunctionality/__pycache__
+src/GamingFunctionality/dailyMessageChannels.json
+src/GamingFunctionality/deals.json

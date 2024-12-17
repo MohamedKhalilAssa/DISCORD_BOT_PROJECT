@@ -3,16 +3,18 @@ from dotenv import load_dotenv
 import json
 import os
 import datetime
-# SECOND PART: for the deals and maybe free games that would be scraped from some website
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 
+#VARIABLES
 load_dotenv()
 GEMINI_API_TOKEN = os.getenv("GEMINI_API_TOKEN")
 GEMINI_PROMPT_URL = os.getenv("GEMINI_API_URL") + "=" + GEMINI_API_TOKEN
+CHANNELS_FILE_LOC = os.getenv("CHANNELS_FILE_LOC")
+DEALS_FILE_LOC = os.getenv("DEALS_FILE_LOC")
 # FIRST PART: for the buy functionality and recommendations.  
 
 # data must be JSON and follows the format {candidates : [{content : {parts: [{text}]}}]
@@ -47,7 +49,6 @@ def get_recommendations(product, budget):
     # sanitizing the prompt
     sanitize_request = f"answer with only one of the following options (No | hardware | Software), if {product} is related to electronics,technology or gaming ?"
     type = query_gemini_api(sanitize_request).strip().lower().replace(".","")
-    print(type)
     if type == "no":
         return [], "Not allowed"
     elif type == "software" or type == "hardware":
@@ -82,7 +83,6 @@ def finalizing_recommendations(product,budget):
             name = recommendation["name"].replace(" ","%20")
             recommendation["links"] = [
                 f"https://www.amazon.com/s?k={name}",
-                f"https://www.ultrapc.ma/recherche?controller=search&s={name}",
                 f"https://www.ebay.com/sch/i.html?&_nkw={name}",
                 f"https://www.aliexpress.com/w/wholesale-{name}.html"
             ]    
@@ -91,14 +91,8 @@ def finalizing_recommendations(product,budget):
     #     json.dump(recommendations, f)
     return 1, recommendations
         
-# finalizing_recommendations("PS5",1000)
 
-# SECOND PART: for the deals and maybe free games that would be scraped from some website
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from bs4 import BeautifulSoup
+# SECOND PART: for the DEALS and maybe free games that would be scraped from some website
 
 # function that scrapes the data from the website
 #@return format: [{name,deal_value,old_value, image, link}...] 
@@ -141,7 +135,7 @@ def scrape_deals(max_deals=10):
 # function that scrapes the deals and updates the deals.json after 1 day has passed
 def create_or_update_deals_json():
     try:
-        with open("src/GamingFunctionality/deals.json", "r+") as f:
+        with open(DEALS_FILE_LOC, "r+") as f:
             data = json.load(f)
 
             timestamp = data.get("timestamp", "")  
@@ -159,28 +153,14 @@ def create_or_update_deals_json():
             
             return data["data"]
               
-    except (json.JSONDecodeError, ValueError, KeyError) as e:
+    except (json.JSONDecodeError, ValueError, KeyError, FileNotFoundError) as e:
         print("Error reading or parsing deals.json:", e)
         data = {
             "data": scrape_deals(),
             "timestamp": datetime.date.today().strftime("%Y-%m-%d")
         }
-        with open("src/GamingFunctionality/deals.json", "w") as f:
+        with open(DEALS_FILE_LOC, "w") as f:
             json.dump(data, f, indent=4)
             print("deals.json created with new data")
         return data["data"]
 
-# function that uses the deals.json to send the deals to the discord channel
-async def send_deals(discord, message,colors):
-    deals = create_or_update_deals_json()
-    for index, deal in enumerate(deals):
-        embed = discord.Embed(
-            title=deal["name"],
-            url=deal["link"],
-            color=colors[index % len(colors)]
-        )
-        embed.add_field(name="Old Price", value=f"{deal["old_value"]}", inline=False)
-        embed.add_field(name="New Price", value=f"{deal["deal_value"]}", inline=False)
-        embed.set_image(url=deal["image"])
-        await message.channel.send(embed=embed)
-    await message.channel.send("Done!")
