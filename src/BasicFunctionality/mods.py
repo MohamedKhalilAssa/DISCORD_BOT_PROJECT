@@ -3,25 +3,10 @@ from discord.ext import commands
 from dotenv import load_dotenv
 import os 
 
-#set up intents
-intents = discord.Intents.default()
-intents.members = True
-intents.message_content = True
-
-#Define the command prefix 
-
-bot = commands.Bot(command_prefix = '!', intents = intents)
-
-@bot.event
-async def on_ready():
-    print(f"logged in as {bot.user}")
-
-bot.run(os.getenv("DISCORD_TOKEN"))
-
 
 #command : Kick a member 
 
-@bot.command()
+@commands.command()
 @commands.has_permissions(kick_members=True)
 async def kick(ctx, member: discord.Member,*,reason = None):
     
@@ -36,8 +21,8 @@ async def kick(ctx, member: discord.Member,*,reason = None):
 
 #command : ban
 
-@bot.command()
-@commands.has_permission(ban_members = True)
+@commands.command()
+@commands.has_permissions(ban_members = True)
 
 async def ban(ctx ,member: discord.Member ,* ,reason = None):
     await member.ban(reason = reason) #ban the member
@@ -45,8 +30,8 @@ async def ban(ctx ,member: discord.Member ,* ,reason = None):
 
 #command : unban a previous banned member
 
-@bot.command()
-@commands.has_permission(ban_members = True)
+@commands.command()
+@commands.has_permissions(ban_members = True)
 
 async def unban(ctx, *, username):
     banned_users = await ctx.guild.bans() # Fetch tha list of banned users
@@ -57,8 +42,8 @@ async def unban(ctx, *, username):
             await ctx.send(f"{user} has been unbanned.")
     await ctx.send("User not found in the ban list.")
 
-@bot.command()
-@commands.has_permission(moderate_members = True)
+@commands.command()
+@commands.has_permissions(moderate_members = True)
 
 async def mute(ctx, member: discord.Member, duration, *, reason = None):
     time = discord.utils.utcnow() + discord.timedelta(duration)
@@ -67,19 +52,12 @@ async def mute(ctx, member: discord.Member, duration, *, reason = None):
 
 #command : delete a specified numer of messages from a channel
 
-@bot.command()
-@commands.has_permission(manage_messages = True)
+@commands.command()
+@commands.has_permissions(manage_messages = True)
 
 async def purge(ctx, amount):
     await ctx.channel.urge(limit = amount + 1) #delelte the messages includes the command itself
     await ctx.send(f"Deleted {amount} messages", delete_after = 3)
-
-#handling permission errors
-
-@bot.event
-async def command_error(ctx, error):
-    if isinstance(error, commands.MissingPermission): #if the error(exception object) is in the exception class commands.MissingPermission
-        await ctx.send("You don't have permission to use this command")
 
 #Anti spam :
 
@@ -87,3 +65,8 @@ async def command_error(ctx, error):
 message_limits = 5 #maximum messages allowed in the time window
 time_window  = 10 #10 secondes
 mute_duration = 600 # mute for 10 minutes
+
+def setup(bot):
+    bot.add_command(kick)
+    bot.add_command(ban)
+    bot.add_command(unban)

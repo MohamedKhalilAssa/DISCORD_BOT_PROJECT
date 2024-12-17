@@ -1,8 +1,9 @@
 import discord
 from dotenv import load_dotenv
-import json
+from discord.ext import commands
 import os
 from GamingFunctionality.fetchingData import finalizing_recommendations, send_deals
+from BasicFunctionality.mods import setup
 
 load_dotenv()
 
@@ -25,16 +26,17 @@ def logging(message):
 # BOT SETUP
 intents = discord.Intents.default()
 intents.message_content = True
+intents.members = True
 
-client = discord.Client(intents=intents)
+bot = commands.Bot(command_prefix='!', intents=intents)
 
-@client.event
+@bot.event
 async def on_ready():
-    print(f'We have logged in as {client.user}')
+    print(f'We have logged in as {bot.user}')
 
-@client.event
+@bot.event
 async def on_message(message):
-    if message.author == client.user:
+    if message.author == bot.user:
         return
 
     #/help command
@@ -73,12 +75,15 @@ async def on_message(message):
     if message.content.startswith('/deals'):
         await send_deals(discord,message,colors)
 
+    await bot.process_commands(message)
+    
+setup(bot)
 
 
 
 
 if __name__ == "__main__":
     try: 
-        client.run(os.getenv('DISCORD_TOKEN'))
+        bot.run(os.getenv('DISCORD_TOKEN'))
     except Exception as e:
         print("Error during the running of the bot process: ",e)
