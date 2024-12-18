@@ -94,7 +94,7 @@ async def on_message(message):
 
         #Delete the message and mute the spammer
         await message.delete()
-        await mute(ctx = message , message.author.mention, mute_duration, *, reason = "Spamming messages") #calling the mute command
+        await mute(ctx = message , member = message.author.mention, duration = mute_duration, reason = "Spamming messages" ) #calling the mute command
 
 
 
