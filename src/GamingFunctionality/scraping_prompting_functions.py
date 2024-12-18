@@ -16,7 +16,6 @@ GEMINI_PROMPT_URL = os.getenv("GEMINI_API_URL") + "=" + GEMINI_API_TOKEN
 CHANNELS_FILE_LOC = os.getenv("CHANNELS_FILE_LOC")
 DEALS_FILE_LOC = os.getenv("DEALS_FILE_LOC")
 # FIRST PART: for the buy functionality and recommendations.  
-test =1
 # data must be JSON and follows the format {candidates : [{content : {parts: [{text}]}}]
 def clean_api_data(data):
     try :
