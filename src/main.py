@@ -1,10 +1,13 @@
 import discord
 from dotenv import load_dotenv
 from discord.ext import commands
-from BasicFunctionality.mods import setup
+from BasicFunctionality.mods import setup, mute
 from GamingFunctionality.HelperFunctions import InsertChannelID, logging, send_deals, sendDailyDeals, deleteChannelID
 import os
 from GamingFunctionality.scraping_prompting_functions import finalizing_recommendations
+from collections import defaultdict, deque
+import time
+
 
 
 load_dotenv()
@@ -69,24 +72,7 @@ async def on_message(message):
     #/deals       
     if message.content.startswith('/deals'):
         await send_deals(discord,message,colors)
-
-    await bot.process_commands(message)
-
-@bot.event
-async def on_command_error(ctx, error):
-    if isinstance(error, commands.MissingPermissions):  # Fixing the error type
-        await ctx.send("You don't have permission to use this command.")
-    elif isinstance(error, commands.MissingRequiredArgument):
-        await ctx.send("A required argument is missing. Please check the command usage.")
-    elif isinstance(error, commands.CommandNotFound):
-        await ctx.send("Unknown command. Use /help or !help for a list of commands.")
-    else:
-        # Log the error for debugging purposes
-        print(f"An error occurred: {error}")
-        await ctx.send("An unexpected error occurred. Please contact an admin.")
-    
-setup(bot)
-
+        
     #/dailyDeals
     if message.content.startswith('/dailyDeals'):
        
@@ -107,6 +93,55 @@ setup(bot)
             await message.channel.send("An Error Occured. Please Try again.")
     
     #MEHDI's PART 
+    
+    #Anti spam :
+
+    #Spam settings :
+    message_limit = 5 #maximum messages allowed in the time window
+    time_window  = 10 #10 secondes
+    mute_duration = 600 # mute for 10 minutes
+
+
+    #store user messages data
+    user_messages = defaultdict(deque)
+
+    #Event : activated when a message is sent
+    user_id = message.author.id
+    current_time = time.time()
+
+    #add the message timpestamp to the user's time wondow
+    user_messages[user_id].append(current_time)
+    
+    #Remove timestamp older than the time window
+    while user_messages [user_id] and user_messages[user_id][0] - current_time > time_window :
+        user_messages[user_id].popleft()
+
+    #check if the user exceeds the message limit
+    if len(user_messages[user_id]) > message_limit:
+        await message.channel.send(f"{message.author.mention}, you are a spamming! Please slow down and chill.")
+
+        #Delete the message and mute the spammer
+        await message.delete()
+        await mute(ctx = message , member = message.author.mention, duration = mute_duration, reason = "Spamming messages" ) #calling the mute command
+
+
+
+    await bot.process_commands(message)
+
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.MissingPermissions):  # Fixing the error type
+        await ctx.send("You don't have permission to use this command.")
+    elif isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send("A required argument is missing. Please check the command usage.")
+    elif isinstance(error, commands.CommandNotFound):
+        await ctx.send("Unknown command. Use /help or !help for a list of commands.")
+    else:
+        # Log the error for debugging purposes
+        print(f"An error occurred: {error}")
+        await ctx.send("An unexpected error occurred. Please contact an admin.")
+    
+setup(bot)
 
 
 
