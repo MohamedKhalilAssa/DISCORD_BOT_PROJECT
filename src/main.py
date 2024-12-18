@@ -1,8 +1,11 @@
 import discord
 from dotenv import load_dotenv
+from discord.ext import commands
+from BasicFunctionality.mods import setup
 from GamingFunctionality.HelperFunctions import InsertChannelID, logging, send_deals, sendDailyDeals, deleteChannelID
 import os
 from GamingFunctionality.scraping_prompting_functions import finalizing_recommendations
+
 
 load_dotenv()
 
@@ -14,15 +17,18 @@ colors = [discord.Color.blue(), discord.Color.green(), discord.Color.red(), disc
 # BOT SETUP
 intents = discord.Intents.default()
 intents.message_content = True
-client = discord.Client(intents=intents)
+intents.members = True
 
-@client.event
+bot = commands.Bot(command_prefix='/', intents=intents)
+
+
+@bot.event
 async def on_ready():
-    print(f'We have logged in as {client.user}')
+    print(f'We have logged in as {bot.user}')
 
-@client.event
+@bot.event
 async def on_message(message):
-    if message.author == client.user:
+    if message.author == bot.user:
         return
 
     #MOHAMED's PART :  
@@ -64,6 +70,23 @@ async def on_message(message):
     if message.content.startswith('/deals'):
         await send_deals(discord,message,colors)
 
+    await bot.process_commands(message)
+
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.MissingPermissions):  # Fixing the error type
+        await ctx.send("You don't have permission to use this command.")
+    elif isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send("A required argument is missing. Please check the command usage.")
+    elif isinstance(error, commands.CommandNotFound):
+        await ctx.send("Unknown command. Use /help or !help for a list of commands.")
+    else:
+        # Log the error for debugging purposes
+        print(f"An error occurred: {error}")
+        await ctx.send("An unexpected error occurred. Please contact an admin.")
+    
+setup(bot)
+
     #/dailyDeals
     if message.content.startswith('/dailyDeals'):
        
@@ -87,11 +110,8 @@ async def on_message(message):
 
 
 
-
-
-
 if __name__ == "__main__":
     try: 
-        client.run(os.getenv('DISCORD_TOKEN'))
+        bot.run(os.getenv('DISCORD_TOKEN'))
     except Exception as e:
         print("Error during the running of the bot process: ",e)
