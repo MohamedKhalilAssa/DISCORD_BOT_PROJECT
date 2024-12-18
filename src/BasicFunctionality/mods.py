@@ -2,7 +2,8 @@ import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 import os 
-
+from collections import defaultdict, deque
+import time
 
 #command : Kick a member 
 
@@ -59,27 +60,52 @@ async def purge(ctx, amount):
     await ctx.channel.urge(limit = amount + 1) #delelte the messages includes the command itself
     await ctx.send(f"Deleted {amount} messages", delete_after = 3)
 
-#Handling errors:
-@bot.event
-async def on_command_error(ctx, error):
-    if isinstance(error, commands.MissingPermissions):  # Fixing the error type
-        await ctx.send("You don't have permission to use this command.")
-    elif isinstance(error, commands.MissingRequiredArgument):
-        await ctx.send("A required argument is missing. Please check the command usage.")
-    elif isinstance(error, commands.CommandNotFound):
-        await ctx.send("Unknown command. Use /help or !help for a list of commands.")
-    else:
-        # Log the error for debugging purposes
-        print(f"An error occurred: {error}")
-        await ctx.send("An unexpected error occurred. Please contact an admin.")
+
 
 #Anti spam :
 
 #Spam settings :
-message_limits = 5 #maximum messages allowed in the time window
+message_limit = 5 #maximum messages allowed in the time window
 time_window  = 10 #10 secondes
 mute_duration = 600 # mute for 10 minutes
 
+#store user messages data
+user_messages = defaultdict(deque)
+
+
+#Event : activated when a message is sent
+@bot.event
+async def on_message(message):
+    if message.author.bot: #ignore bot messages
+        return
+    user_id = message.author.id
+    current_time = time.time()
+
+    #add the message timpestamp to the user's time wondow
+    user_message[user_id].append(current_time)
+    
+    #Remove timestamp older than the time window
+    while user_messages [user_id] and user_messages[user_id][0] - current_time > time_window :
+        user_messages[user_id].popleft()
+
+    #check if the user exceeds the message limit
+    if len(user_messages[user_id]) > message_limit:
+        await message.channel.send(f"{message.author.mention}, you are a spamming! Please slow down and chill.")
+
+        #Delete the message and mute the spammer
+        await message.delete()
+        
+
+
+
+
+
+
+
+
+
 def setup(bot):
     bot.add_command(unban)
+    bot.add_command(mute)
+    bot.add_command(purge)
     
