@@ -5,7 +5,15 @@ import os
 from collections import defaultdict, deque
 import time
 
+GEMINI_API_TOKEN = os.getenv("GEMINI_API_TOKEN")
+GEMINI_API_URL = os.getenv("GEMINI_API_URL")
 
+# BOT SETUP
+intents = discord.Intents.default()
+intents.message_content = True
+intents.members = True
+
+bot = commands.Bot(command_prefix='/', intents=intents)
 #command : Kick a member 
 
 @commands.command()
@@ -76,14 +84,14 @@ user_messages = defaultdict(deque)
 
 #Event : activated when a message is sent
 @bot.event
-async def on_message(message):
+async def spam_detection(message):
     if message.author.bot: #ignore bot messages
         return
     user_id = message.author.id
     current_time = time.time()
 
     #add the message timpestamp to the user's time wondow
-    user_message[user_id].append(current_time)
+    user_messages[user_id].append(current_time)
     
     #Remove timestamp older than the time window
     while user_messages [user_id] and user_messages[user_id][0] - current_time > time_window :
