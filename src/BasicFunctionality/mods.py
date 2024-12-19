@@ -129,7 +129,7 @@ BANNED_WORDS = [
 user_warnings = defaultdict(int)
 
 
-async def on_message(message):
+async def ban_words(message):
     if message.author.bot:
         return
 
@@ -160,7 +160,19 @@ async def on_message(message):
                 f"⚠️ {message.author.mention}, this is warning {user_warnings[user_id]} of {WARN_THRESHOLD}. "
                 f"You will be muted if you receive {warnings_left} more warnings."
             )   
+#Auto reply :
+AUTO_REPLIES = {
+    "hello": "Hi there!",
+    "how are you": "I'm just a bot, but I'm doing great!",
+    "discord bot": "That's me!"
+}
 
+@bot.event
+async def auto_reply(message):
+    for key, response in AUTO_REPLIES.items():
+        if key in message.content.lower():
+            await message.channel.send(response)
+            break
 
 
 
