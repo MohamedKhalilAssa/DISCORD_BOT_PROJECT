@@ -6,3 +6,4 @@ src/BasicFunctionality/__pycache__
 src/GamingFunctionality/dailyMessageChannels.json
 src/GamingFunctionality/deals.json
 .venv
+tempCodeRunner.py

@@ -2,37 +2,12 @@ import discord
 from discord.ext import commands
 from collections import defaultdict, deque
 import time
-
-GEMINI_API_TOKEN = os.getenv("GEMINI_API_TOKEN")
-GEMINI_API_URL = os.getenv("GEMINI_API_URL")
-
-#command : Kick a member 
-
-@commands.command()
-@commands.has_permissions(kick_members=True)
-async def kick(ctx, member: discord.Member,*,reason = None):
-    
-    '''
-    kicks a member from the server
-    the member to kick : member
-    reason = reason
-
-    '''
-    await member.kick(reason = reason) #kick the member
-    await ctx.send(f"{member.mention} has been kicked for {reason}") #confirm in chat
-
-#command : ban
-
-@commands.command()
-@commands.has_permissions(ban_members = True)
-
-async def ban(ctx ,member: discord.Member ,* ,reason = None):
-    await member.ban(reason = reason) #ban the member
-    await ctx.send(f"{member.mention} has been banned for{reason}") #confirm in chat
-
+from BasicFunctionality.prompt import contain_bad_words
+import json
+from datetime import datetime, timedelta
 #command : unban a previous banned member
 
-@commands.command()
+@commands.command(name="unban")
 @commands.has_permissions(ban_members = True)
 
 async def unban(ctx, *, username):
@@ -44,138 +19,93 @@ async def unban(ctx, *, username):
             await ctx.send(f"{user} has been unbanned.")
     await ctx.send("User not found in the ban list.")
 
-@commands.command()
+@commands.command(name="mute")
 @commands.has_permissions(moderate_members = True)
 
-async def mute(ctx, member: discord.Member, duration, *, reason = None):
-    time = discord.utils.utcnow() + discord.timedelta(duration)
-    await member.timeout(utili = time, reason = reason) # Apply timeout
-    await ctx.send(f"{member.mention}has been muted for{duration} minutes.")
+
+async def mute(message, member, duration, *, reason=None):
+
+    # Calculate the end time for the timeout
+    end_time = datetime.now().astimezone()  + timedelta(seconds=duration)
+    # Apply the timeout
+    try:
+        await member.timeout(end_time, reason=reason)
+        await message.channel.send(f"{member.mention} has been muted for {duration // 60} minutes.")
+    except Exception as e:
+        await message.channel.send(f"Failed to mute {member.mention}. Error: {e}")
 
 #command : delete a specified numer of messages from a channel
 
-@commands.command()
+@commands.command(name="purge")
 @commands.has_permissions(manage_messages = True)
 
 async def purge(ctx, amount):
     await ctx.channel.urge(limit = amount + 1) #delelte the messages includes the command itself
     await ctx.send(f"Deleted {amount} messages", delete_after = 3)
 
+import json
 
-
-
-#Anti spam :
-
-#Spam settings :
-message_limit = 5 #maximum messages allowed in the time window
-time_window  = 10 #10 secondes
-mute_duration = 600 # mute for 10 minutes
-
-#store user messages data
-user_messages = defaultdict(deque)
-
-
-#Event : activated when a message is sent
-@bot.event
-async def spam_detection(message):
-    if message.author.bot: #ignore bot messages
-        return
-    user_id = message.author.id
-    current_time = time.time()
-
-    #add the message timpestamp to the user's time wondow
-    user_messages[user_id].append(current_time)
-    
-    #Remove timestamp older than the time window
-    while user_messages [user_id] and user_messages[user_id][0] - current_time > time_window :
-        user_messages[user_id].popleft()
-
-    #check if the user exceeds the message limit
-    if len(user_messages[user_id]) > message_limit:
-        await message.channel.send(f"{message.author.mention}, you are a spamming! Please slow down and chill.")
-
-        #Delete the message and mute the spammer
-        await message.delete()
-        await mute(ctx = message , member = message.author.mention, duration = mute_duration, reason = "Spamming messages" ) #calling the mute command
-
-
-# ban bad/racist words :
-# Configuration
-WARN_THRESHOLD = 3   # Warnings before mute
-MUTE_DURATION = 300    # Duration of mute in secondes
-BANNED_WORDS = [
-    # General Profanity
-    "fuck", "bitch", "damn", "bastard", "asshole",
-    "cunt", "piss", "prick", "slut", "whore",
-
-    # Racist and Discriminatory Words
-    "nigger", "negro", "chink", "spic", "cracker", "wetback",
-    "gook", "kike", "honkey", "beaner", "redskin",
-
-    
-
-    # Hate Speech and Religious Intolerance
-    "terrorist", "nazi", "hitler", "isis",
-
-    # Sexually Explicit and Inappropriate Words
-    "rape", "rapist", "molest", "pedophile", "childporn",
-    "porn", "incest", "bestiality",
-
-    # Slang and Offensive Phrases
-    "kill yourself", "kms", "kys", "die in a fire", "go to hell"
-]
-
-
-# Dictionary to track warnings
-user_warnings = defaultdict(int)
-
+WARN_THRESHOLD1 = 3   # Warnings before mute
+MUTE_DURATION1 = 300  # Duration of mute in seconds
+user_warning_path = "src/BasicFunctionality/user_warnings.json"
 
 async def ban_words(message):
+    """
+    Handles messages containing banned words.
+    """
     if message.author.bot:
         return
 
     # Check if the message contains a banned word
-    if any(banned_word in message.content.lower() for banned_word in BANNED_WORDS):
+    if await contain_bad_words(message.content):
+        print("Message contains a banned word")
+        
         # Delete the offensive message
         await message.delete()
 
-        # Increase the user's warning count
-        user_id = message.author.id
-        user_warnings[user_id] += 1
+        user_id = str(message.author.id)  
 
-        # Notify the channel and user
+        try:
+            with open(user_warning_path, "r") as f:
+                user_warnings = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            user_warnings = {}
+
+        user_warnings[user_id] = user_warnings.get(user_id, 0) + 1
+
+        try:
+            with open(user_warning_path, "w") as f:
+                json.dump(user_warnings, f, indent=4)
+        except Exception as e:
+            print(f"Error saving user warnings: {e}")
+            return
+
         await message.channel.send(
             f"🚨 {message.author.mention}, your message contained prohibited language and has been deleted."
         )
+
         # Check if the user has reached the warning threshold
-        if user_warnings[user_id] >= WARN_THRESHOLD:
-            await mute(message, member = message.author.mention, duration = MUTE_DURATION, reason = "Offensive words")
+        if user_warnings[user_id] >= WARN_THRESHOLD1:
+            # Mute the user
+            await mute(message, member=message.author, duration=MUTE_DURATION1,reason="Offensive words")
+
             await message.channel.send(
-                f"🔇 {message.author.mention} has been muted for {MUTE_DURATION} secondes due to repeated violations."
+                f"🔇 {message.author.mention} has been muted for {MUTE_DURATION1} seconds due to repeated violations."
             )
-            # Reset user's warnings after mute
+
+            # Reset the user's warnings after mute
             user_warnings[user_id] = 0
+            try:
+                with open(user_warning_path, "w") as f:
+                    json.dump(user_warnings, f, indent=4)
+            except Exception as e:
+                print(f"Error saving user warnings after reset: {e}")
         else:
-            warnings_left = WARN_THRESHOLD - user_warnings[user_id]
+            warnings_left = WARN_THRESHOLD1 - user_warnings[user_id]
             await message.channel.send(
-                f"⚠️ {message.author.mention}, this is warning {user_warnings[user_id]} of {WARN_THRESHOLD}. "
+                f"⚠ {message.author.mention}, this is warning {user_warnings[user_id]} of {WARN_THRESHOLD1}. "
                 f"You will be muted if you receive {warnings_left} more warnings."
-            )   
-#Auto reply :
-AUTO_REPLIES = {
-    "hello": "Hi there!",
-    "how are you": "I'm just a bot, but I'm doing great!",
-    "discord bot": "That's me!"
-}
-
-@bot.event
-async def auto_reply(message):
-    for key, response in AUTO_REPLIES.items():
-        if key in message.content.lower():
-            await message.channel.send(response)
-            break
-
-
+            )
 
 def setup(bot):
     bot.add_command(unban)
