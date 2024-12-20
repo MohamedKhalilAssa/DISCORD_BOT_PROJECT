@@ -1,19 +1,11 @@
 import discord
 from discord.ext import commands
-from dotenv import load_dotenv
-import os 
 from collections import defaultdict, deque
 import time
 
 GEMINI_API_TOKEN = os.getenv("GEMINI_API_TOKEN")
 GEMINI_API_URL = os.getenv("GEMINI_API_URL")
 
-# BOT SETUP
-intents = discord.Intents.default()
-intents.message_content = True
-intents.members = True
-
-bot = commands.Bot(command_prefix='/', intents=intents)
 #command : Kick a member 
 
 @commands.command()
@@ -68,6 +60,7 @@ async def mute(ctx, member: discord.Member, duration, *, reason = None):
 async def purge(ctx, amount):
     await ctx.channel.urge(limit = amount + 1) #delelte the messages includes the command itself
     await ctx.send(f"Deleted {amount} messages", delete_after = 3)
+
 
 
 
@@ -181,9 +174,6 @@ async def auto_reply(message):
         if key in message.content.lower():
             await message.channel.send(response)
             break
-
-
-
 
 
 
