@@ -113,10 +113,14 @@ async def info(ctx):
         inline=False,
     )
     embed.add_field(
-        name="/unban <username>", value="Unbans a user.", inline=False
+        name="/mute <username> <duration>", value="Mutes a user.", inline=False
+    )
+    
+    embed.add_field(
+        name="/unmute <username>", value="Unmutes a user.", inline=False
     )
     embed.add_field(
-        name="/mute <username> <duration>", value="Mutes a user.", inline=False
+        name="/purge <amount>", value="Deletes Messages and purges them.", inline=False
     )
     
     await ctx.send(embed=embed)

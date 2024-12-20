@@ -1,10 +1,10 @@
 import discord
 from dotenv import load_dotenv
 from discord.ext import commands
-from BasicFunctionality.mods import setup, mute
+from BasicFunctionality.mods import setup
 import os
 from GamingFunctionality.gamingCommandsIndex import gamingSetup
-from BasicFunctionality.mods import ban_words
+from BasicFunctionality.mods import ban_words, anti_spam
 
 
 load_dotenv()
@@ -38,7 +38,7 @@ async def on_ready():
 async def on_message(message):
     if message.author == bot.user:
         return
-
+    await anti_spam(message)
     await ban_words(message)
     await bot.process_commands(message)
     

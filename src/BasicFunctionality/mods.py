@@ -21,9 +21,7 @@ async def unban(ctx, *, username):
 
 @commands.command(name="mute")
 @commands.has_permissions(moderate_members = True)
-
-
-async def mute(message, member, duration, *, reason=None):
+async def mute(message, member: discord.Member, duration : int, *, reason=None):
 
     # Calculate the end time for the timeout
     end_time = datetime.now().astimezone()  + timedelta(seconds=duration)
@@ -34,13 +32,22 @@ async def mute(message, member, duration, *, reason=None):
     except Exception as e:
         await message.channel.send(f"Failed to mute {member.mention}. Error: {e}")
 
+@commands.command(name="unmute")
+@commands.has_permissions(moderate_members = True)
+async def unmute(message, member: discord.Member):
+    # Apply the timeout
+    try:
+        await member.timeout(datetime.now().astimezone() - timedelta(days=1))
+        await message.channel.send(f"{member.mention} has been unmuted.")
+    except Exception as e:
+        await message.channel.send(f"Failed to unmute {member.mention}. Error: {e}")
 #command : delete a specified numer of messages from a channel
 
 @commands.command(name="purge")
 @commands.has_permissions(manage_messages = True)
 
-async def purge(ctx, amount):
-    await ctx.channel.urge(limit = amount + 1) #delelte the messages includes the command itself
+async def purge(ctx, amount=10):
+    await ctx.channel.purge(limit = amount + 1) #delelte the messages includes the command itself
     await ctx.send(f"Deleted {amount} messages", delete_after = 3)
 
 import json
@@ -107,8 +114,68 @@ async def ban_words(message):
                 f"You will be muted if you receive {warnings_left} more warnings."
             )
 
+SPAM_THRESHOLD = 5   # Messages allowed in time window
+TIME_WINDOW = 10     # Time window in seconds
+MUTE_DURATION = 600  # Mute duration in seconds
+user_messages_path = "src/BasicFunctionality/user_messages.json"
+
+async def anti_spam(message):
+    """
+    Anti-spam function to detect and mute spamming users.
+    """
+    if message.author.bot:
+        return
+
+    user_id = str(message.author.id)  # Convert user ID to string for JSON compatibility
+    current_time = time.time()
+
+    # Load user message timestamps from the file
+    try:
+        with open(user_messages_path, "r") as f:
+            user_messages = json.load(f)
+            # Convert lists to deque for efficient processing
+            user_messages = {k: deque(v) for k, v in user_messages.items()}
+    except (FileNotFoundError, json.JSONDecodeError):
+        user_messages = {}
+
+    # Initialize deque for the user if not present
+    if user_id not in user_messages:
+        user_messages[user_id] = deque()
+
+    # Add the current message timestamp
+    user_messages[user_id].append(current_time)
+
+    # Remove timestamps older than the time window
+    while user_messages[user_id] and current_time - user_messages[user_id][0] > TIME_WINDOW:
+        user_messages[user_id].popleft()
+
+    # Save the updated user messages back to the file
+    try:
+        with open(user_messages_path, "w") as f:
+            # Convert deques to lists for JSON serialization
+            json.dump({k: list(v) for k, v in user_messages.items()}, f, indent=4)
+    except Exception as e:
+        print(f"Error saving user messages: {e}")
+        return
+
+    # Check if the user exceeds the spam threshold
+    if len(user_messages[user_id]) > SPAM_THRESHOLD:
+        await message.channel.send(f"🚨 {message.author.mention}, you are spamming! Please slow down.")
+        await message.delete()
+
+        # Mute the user
+        await mute(
+            message,
+            member=message.author,
+            duration=MUTE_DURATION,
+            reason="Spamming messages"
+        )
+        await message.channel.send(
+            f"🔇 {message.author.mention} has been muted for {MUTE_DURATION // 60} minutes due to spamming."
+        )
 def setup(bot):
     bot.add_command(unban)
     bot.add_command(mute)
+    bot.add_command(unmute)
     bot.add_command(purge)
     
