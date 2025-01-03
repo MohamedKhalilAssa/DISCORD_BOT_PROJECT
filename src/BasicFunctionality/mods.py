@@ -173,6 +173,19 @@ async def anti_spam(message):
         await message.channel.send(
             f"🔇 {message.author.mention} has been muted for {MUTE_DURATION // 60} minutes due to spamming."
         )
+
+async def auto_reply(message):
+
+    AUTO_REPLIES = {
+        "hello": "Hi there!",
+        "how are you": "I'm just a bot, but I'm doing great!",
+        "discord bot": "That's me!"
+    }
+    for key, response in AUTO_REPLIES.items():
+        if key in message.content.lower():
+            await message.channel.send(response)
+            break
+
 def setup(bot):
     bot.add_command(unban)
     bot.add_command(mute)

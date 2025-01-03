@@ -4,7 +4,7 @@ from discord.ext import commands
 from BasicFunctionality.mods import setup
 import os
 from GamingFunctionality.gamingCommandsIndex import gamingSetup
-from BasicFunctionality.mods import ban_words, anti_spam
+from BasicFunctionality.mods import ban_words, anti_spam, auto_reply
 
 
 load_dotenv()
@@ -21,7 +21,7 @@ intents.members = True
 
 bot = commands.Bot(command_prefix='/', intents=intents)
 
-# Command: Help
+
 
 
 @bot.event
@@ -40,24 +40,10 @@ async def on_message(message):
         return
     await anti_spam(message)
     await ban_words(message)
+    await auto_reply(message)
     await bot.process_commands(message)
     
-
-AUTO_REPLIES = {
-    "hello": "Hi there!",
-    "how are you": "I'm just a bot, but I'm doing great!",
-    "discord bot": "That's me!"
-}
-
-@bot.event
-async def auto_reply(message):
-    for key, response in AUTO_REPLIES.items():
-        if key in message.content.lower():
-            await message.channel.send(response)
-            break
     
-    await bot.process_commands(message)
-
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.MissingPermissions):  # Fixing the error type
