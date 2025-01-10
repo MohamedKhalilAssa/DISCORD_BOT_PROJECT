@@ -24,7 +24,6 @@ def result(prompt):
 async def contain_bad_words(message):
     res = result(f"answer with Yes or NO, does{message} contain any bad word in context of racism, religion,... etc")
     output = res.lower().strip().replace("." , "")
-    print(output)
     if output == "yes":
         return True
     elif output == "no":     # use try except

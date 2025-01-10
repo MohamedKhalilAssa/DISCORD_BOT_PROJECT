@@ -3,6 +3,8 @@ src/.env
 src/GamingFunctionality/logs.txt
 src/GamingFunctionality/__pycache__
 src/BasicFunctionality/__pycache__
+src/BasicFunctionality/user_messages.json
+src/BasicFunctionality/user_warnings.json
 src/GamingFunctionality/dailyMessageChannels.json
 src/GamingFunctionality/deals.json
 .venv
