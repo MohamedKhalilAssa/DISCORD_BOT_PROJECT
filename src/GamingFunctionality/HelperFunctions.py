@@ -77,8 +77,8 @@ async def send_deals(discord, message,colors):
             url=deal["link"],
             color=colors[index % len(colors)]
         )
-        embed.add_field(name="Old Price", value=f"{deal["old_value"]}", inline=False)
-        embed.add_field(name="New Price", value=f"{deal["deal_value"]}", inline=False)
+        embed.add_field(name="Old Price", value=f"{deal['old_value']}", inline=False)
+        embed.add_field(name="New Price", value=f"{deal['deal_value']}", inline=False)
         embed.set_image(url=deal["image"])
         await message.channel.send(embed=embed)
     await message.channel.send("Done!")
